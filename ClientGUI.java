@@ -1,3 +1,4 @@
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
@@ -10,6 +11,7 @@ public class ClientGUI {
     
     // Global Variables
     Connection connection = null;
+    QueryResultTableModel resultTableModel = new QueryResultTableModel();
     String drivers[] = {"com.mysql.jdbc.Driver", "oracle.jdbc.driver.OracleDriver", "com.ibm.db2.jdbc.netDB2Driver", "com.jdbc.odbc.jdbcOdbcDriver"};
     String url[] = {"jdbc:mysql://localhost:3310/project3"};
     
@@ -18,21 +20,20 @@ public class ClientGUI {
     JComboBox<String> urlCB = new JComboBox<String>(url);
     JTextField usernameField = new JTextField(25);
     JTextField passwordField = new JTextField(25);
-    JTextArea commandTextArea = new JTextArea(10, 50);
+    JTextArea commandTextArea = new JTextArea(10, 50);    
     JLabel status = new JLabel("No Connection Now");
     JButton connectButton = new JButton("Connect to Database");
     JButton clearButton = new JButton("Clear Command");
     JButton executeButton = new JButton("Execute SQL Command");
-    JTextArea resultTextArea = new JTextArea(10, 10);
     JButton clearResultButton = new JButton("Clear Result Window");
+    JTable resultTable = new JTable( resultTableModel );
     
     public ClientGUI(){
         buildGUI();
+        ActivateButtons();
     }
     
     private void buildGUI(){
-        
-
         
         // DB Connection Area
         JPanel dbPanel = new JPanel();
@@ -65,10 +66,15 @@ public class ClientGUI {
         
         // SQL Command Window
         JLabel titleSQL = new JLabel("Enter a SQL Command");
+        commandTextArea.setWrapStyleWord( true );
+        commandTextArea.setLineWrap( true );
+        JScrollPane scrollPane = new JScrollPane( commandTextArea,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, 
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER );
         JPanel sqlPanel = new JPanel();
         sqlPanel.setLayout(new BoxLayout(sqlPanel, BoxLayout.Y_AXIS));
         sqlPanel.add(titleSQL);
-        sqlPanel.add(commandTextArea);
+        sqlPanel.add(scrollPane);
         
         // Top half panel
         JPanel panel = new JPanel();
@@ -92,7 +98,7 @@ public class ClientGUI {
         mainPanel.add(panel);
         mainPanel.add(middle);
         mainPanel.add(resultTitle);
-        mainPanel.add(resultTextArea);
+        mainPanel.add(new JScrollPane( resultTable ), BorderLayout.CENTER );
         mainPanel.add(clearResultButton);
         
         // Create a frame and add the panel to it
@@ -127,19 +133,10 @@ public class ClientGUI {
          
          switch(command){
              case "Connect":
-                try {
-                    ConnectHelper();
-                } catch (ClassNotFoundException | SQLException e1) {
-                    e1.printStackTrace();
-                }
+                 ConnectHelper();
                  break;
              case "Clear":
-                try {
-                    ClearHelper();
-                } catch (SQLException e1) {
-                    // TODO Auto-generated catch block
-                    e1.printStackTrace();
-                }
+                 ClearHelper();
                  break;
              case "Execute":
                  ExecuteHelper();
@@ -153,64 +150,33 @@ public class ClientGUI {
      }
 
     }
-    private void ConnectHelper() throws SQLException, ClassNotFoundException{
+    private void ConnectHelper() {
+        
         // Load the JDBC driver
-        Class.forName(driversCB.getSelectedItem().toString());
-        System.out.println("Driver loaded");
+        if(!resultTableModel.LoadDriver(driversCB.getSelectedItem().toString()))
+            return;
         
-        System.out.println(usernameField.getText());
-
-        // Establish a connection
-        connection = DriverManager.getConnection
-                (urlCB.getSelectedItem().toString(), usernameField.getText(), passwordField.getText());
-        System.out.println("Database connected");
-        status.setText("Connected to " + urlCB.getSelectedItem().toString());
-        status.setForeground(Color.GREEN);
-        
-        DatabaseMetaData dbMetaData = connection.getMetaData();
-        System.out.println("JDBC Driver name " + dbMetaData.getDriverName() );
-        System.out.println("JDBC Driver version " + dbMetaData.getDriverVersion());
-        System.out.println("Driver Major version " +dbMetaData.getDriverMajorVersion());
-        System.out.println("Driver Minor version " +dbMetaData.getDriverMinorVersion() );
+        // Connect to the database & display the status if its a success.
+        if(resultTableModel.ConnectToDatabase(urlCB.getSelectedItem().toString(), usernameField.getText(), passwordField.getText())){
+            status.setText("Connected to " + urlCB.getSelectedItem().toString());
+            status.setForeground(Color.RED);
+        }
     }
     
     
-    private void ClearHelper() throws SQLException {
-        // Create a statement
-        Statement statement = connection.createStatement();
-
-        // Execute a statement
-        ResultSet resultSet = statement.executeQuery
-          (commandTextArea.getText());
-        
-        ResultSetMetaData meta = resultSet.getMetaData();
-        for (int j = 0; j< meta.getColumnCount(); j++){
-            
-        }
-
-        // Iterate through the result set and print the returned results
-        while (resultSet.next())
-          System.out.println(resultSet.getString("bikename") + "         \t" +
-            resultSet.getString("cost") + "         \t" + resultSet.getString("mileage"));
-            //the following print statement works exactly the same  
-          //System.out.println(resultSet.getString(1) + "         \t" +
-          //  resultSet.getString(2) + "         \t" + resultSet.getString(3));
-
-        // Close the connection
-        connection.close();
-        
+    private void ClearHelper() {
+        commandTextArea.setText(null);
     }
     
     private void ExecuteHelper() {
-        // TODO Auto-generated method stub
         
+        // Execute the given SQL query
+        resultTableModel.ExecuteQuery( commandTextArea.getText() );
     }
     private void ClearResultHelper() {
-        // TODO Auto-generated method stub
-        
+        resultTableModel.EmptyTable();
     }
     public static void main(String[] args) throws ClassNotFoundException, SQLException {
         ClientGUI client = new ClientGUI();
-        client.ActivateButtons();
     }
 }
