@@ -36,6 +36,11 @@ public class QueryResultTableModel extends AbstractTableModel {
     
     public Boolean ConnectToDatabase(String database, String username, String password){
         
+        if (connectedToDatabase){
+            System.out.printf("Already Connected...Disconnecting....");
+            DisconnectFromDatabase();
+        }
+        
         if (username.isEmpty() || password.isEmpty()){
             JOptionPane.showMessageDialog( null, "Username/Password Combination Incorrect", "Authentication Error", JOptionPane.ERROR_MESSAGE );
             return false;
@@ -74,7 +79,7 @@ public class QueryResultTableModel extends AbstractTableModel {
         try {
             
             // Specify query and execute it
-            System.out.printf("Queryy: " + query);
+            System.out.println("Queryy: " + query);
             resultSet = statement.executeQuery(query);
             
             // obtain meta data for ResultSet
@@ -93,6 +98,50 @@ public class QueryResultTableModel extends AbstractTableModel {
         // notify JTable that model has changed
         fireTableStructureChanged();
      }
+    
+    public void ExecuteUpdate(String query) {
+        
+        // ensure database connection is available
+        if ( !connectedToDatabase ){
+            JOptionPane.showMessageDialog( null, "You must be connected to a database first", "Database Error", JOptionPane.ERROR_MESSAGE );
+            return;
+        }
+
+        try {
+            
+            // Specify query and execute it
+            System.out.printf("Queryy: " + query);
+            statement.executeUpdate(query);
+            
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog( null, e.getMessage(), "Database error", JOptionPane.ERROR_MESSAGE );
+        }
+
+        // notify JTable that model has changed
+        fireTableStructureChanged();
+     }
+    
+    // close Statement and Connection               
+    public void DisconnectFromDatabase()            
+    {              
+       if ( !connectedToDatabase )                  
+          return;
+
+       // close Statement and Connection            
+       try                                          
+       {                                            
+          statement.close();                        
+          connection.close();                       
+       } // end try                                 
+       catch ( SQLException sqlException )          
+       {                                            
+          sqlException.printStackTrace();           
+       } // end catch                               
+       finally  // update database connection status
+       {                                            
+          connectedToDatabase = false;              
+       } // end finally                             
+    } // end method disconnectFromDatabase  
     
     public void EmptyTable(){
         if (resultSet == null)

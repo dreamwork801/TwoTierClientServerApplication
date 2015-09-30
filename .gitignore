@@ -12,3 +12,9 @@
 .settings/org.eclipse.jdt.core.prefs
 miglayout-src.zip
 miglayout15-swing.jar
+/QueryResultTableModel.class
+/ButtonListener.class
+/ClientGUI$1.class
+/ClientGUI$ButtonListener.class
+DisplayQueryResults.java
+ResultSetTableModel.java

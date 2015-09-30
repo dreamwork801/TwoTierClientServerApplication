@@ -3,6 +3,8 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.*;
 
 import javax.swing.*;
@@ -16,11 +18,12 @@ public class ClientGUI {
     String url[] = {"jdbc:mysql://localhost:3310/project3"};
     
     // GUI Global Variables
+    JFrame frame = new JFrame("SQL Client GUI");
     JComboBox<String> driversCB = new JComboBox<String>(drivers);
     JComboBox<String> urlCB = new JComboBox<String>(url);
-    JTextField usernameField = new JTextField(25);
-    JTextField passwordField = new JTextField(25);
-    JTextArea commandTextArea = new JTextArea(10, 50);    
+    JTextField usernameField = new JTextField(21);
+    JTextField passwordField = new JTextField(21);
+    JTextArea commandTextArea = new JTextArea(8, 50);    
     JLabel status = new JLabel("No Connection Now");
     JButton connectButton = new JButton("Connect to Database");
     JButton clearButton = new JButton("Clear Command");
@@ -38,29 +41,35 @@ public class ClientGUI {
         // DB Connection Area
         JPanel dbPanel = new JPanel();
         dbPanel.setLayout(new BoxLayout(dbPanel, BoxLayout.Y_AXIS));
-        dbPanel.add(new JLabel("Enter Database Information"));
+        
+        JPanel title = new JPanel(); 
+        title.setLayout(new FlowLayout(FlowLayout.LEFT));
+        title.add(new JLabel("Enter Database Information"));
+        dbPanel.add(title);
         
         JPanel first = new JPanel(); 
-        first.setLayout(new FlowLayout());
-        first.add(new JLabel("JDBC Driver"));
+        first.setLayout(new FlowLayout(FlowLayout.LEFT));
+        first.add(new JLabel("JDBC Driver    "));
+        driversCB.setPrototypeDisplayValue("XXXXXXXXXXXXXXXXXXXXXXXXXX");
         first.add(driversCB);
         dbPanel.add(first);
         
         JPanel second = new JPanel(); 
-        second.setLayout(new FlowLayout());
+        second.setLayout(new FlowLayout(FlowLayout.LEFT));
         second.add(new JLabel("Database URL"));
+        urlCB.setPrototypeDisplayValue("XXXXXXXXXXXXXXXXXXXXXXXXXX");
         second.add(urlCB);
         dbPanel.add(second);
         
         JPanel third = new JPanel(); 
-        third.setLayout(new FlowLayout());
-        third.add(new JLabel("Username"));
+        third.setLayout(new FlowLayout(FlowLayout.LEFT));
+        third.add(new JLabel("Username       "));
         third.add(usernameField);
         dbPanel.add(third);
         
         JPanel fourth = new JPanel(); 
-        fourth.setLayout(new FlowLayout());
-        fourth.add(new JLabel("Password"));
+        fourth.setLayout(new FlowLayout(FlowLayout.LEFT));
+        fourth.add(new JLabel("Password       "));
         fourth.add(passwordField);
         dbPanel.add(fourth);
         
@@ -83,6 +92,9 @@ public class ClientGUI {
         panel.add(sqlPanel);
         
         // Middle Commands
+        connectButton.setBackground(Color.BLUE);
+        connectButton.setForeground(Color.WHITE);
+        executeButton.setBackground(Color.GREEN);
         JPanel middle = new JPanel(); 
         middle.setLayout(new FlowLayout());
         middle.add(status);
@@ -90,19 +102,23 @@ public class ClientGUI {
         middle.add(clearButton);
         middle.add(executeButton);
         
-        // Result
-        JLabel resultTitle = new JLabel("SQL Execution Result");
-        
+        // Result    
+        clearResultButton.setBackground(Color.YELLOW);
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         mainPanel.add(panel);
         mainPanel.add(middle);
-        mainPanel.add(resultTitle);
-        mainPanel.add(new JScrollPane( resultTable ), BorderLayout.CENTER );
-        mainPanel.add(clearResultButton);
+        JLabel sqlResultLabel = new JLabel("SQL Execution Result");
+        
+        JPanel bottom = new JPanel();
+        bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
+        bottom.add(sqlResultLabel);
+        bottom.add(new JScrollPane( resultTable ), BorderLayout.CENTER );
+        bottom.add(clearResultButton);
+        
+        mainPanel.add(bottom);
         
         // Create a frame and add the panel to it
-        JFrame frame = new JFrame("SQL Client GUI");
         frame.add(mainPanel);
         
         // Display the frame on the screen
@@ -124,6 +140,17 @@ public class ClientGUI {
         clearButton.addActionListener(new ButtonListener());
         executeButton.addActionListener(new ButtonListener());
         clearResultButton.addActionListener(new ButtonListener());
+        
+        // ensure database connection is closed when user quits application
+        frame.setDefaultCloseOperation( WindowConstants.DISPOSE_ON_CLOSE );
+        frame.addWindowListener(new WindowAdapter() { 
+              public void windowClosed( WindowEvent event )
+              {
+                  // disconnect from database and exit when window has closed
+                  resultTableModel.DisconnectFromDatabase();
+                 System.exit( 0 );
+              }
+           });
     }
     
     private class ButtonListener implements ActionListener{
@@ -169,9 +196,14 @@ public class ClientGUI {
     }
     
     private void ExecuteHelper() {
+        String command = commandTextArea.getText();
         
-        // Execute the given SQL query
-        resultTableModel.ExecuteQuery( commandTextArea.getText() );
+        // If command is a select, then call Execute Query
+        if (command.startsWith("s") || command.startsWith("S"))
+            resultTableModel.ExecuteQuery( command );
+        // Else command is an update
+        else
+            resultTableModel.ExecuteUpdate( command );
     }
     private void ClearResultHelper() {
         resultTableModel.EmptyTable();
